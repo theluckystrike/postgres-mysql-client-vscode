@@ -566,7 +566,7 @@ function activate(context) {
     let pretty = rawText;
     try { if (c.type !== 'sqlite' && !analyze) pretty = JSON.stringify(JSON.parse(rawText), null, 2); } catch { /* text plan */ }
     const title = `Plan: ${path.posix.basename(doc.uri.path)}`;
-    const panel = vscode.window.createWebviewPanel('zovoSql.plan', title, { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true }, { enableScripts: false });
+    const panel = vscode.window.createWebviewPanel('zovoSql.plan', title, { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true }, { enableScripts: true, localResourceRoots: [] }); // the page itself has no script: its CSP is default-src 'none'
     panel.webview.html = pro2.planHtml({ plan, sql: st.text.trim(), title: `${analyze ? 'Explain Analyze' : 'Explain Plan'} · ${c.name}`, dialect: DIALECT_NAME[c.type], cspSource: panel.webview.cspSource, analyzed: plan.analyzed, rawText: pretty });
     return { panel, plan };
   }
