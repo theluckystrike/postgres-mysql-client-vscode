@@ -2,7 +2,7 @@
   "name": "zovo-sql-client",
   "displayName": "Postgres & MySQL Query Client - SQL Database Tool (SQLite, CSV Export)",
   "description": "Free PostgreSQL client and MySQL client for VS Code: unlimited connections, edit rows, streamed CSV export. Run SQL with Ctrl+Enter, browse tables, cancel long queries. Also MariaDB and SQLite. No sign-in, no telemetry, no keep-alive queries.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "zovo",
   "license": "MIT",
   "icon": "icon.png",
@@ -230,6 +230,21 @@
         "icon": "$(library)"
       },
       {
+        "command": "zovoSql.explainPlan",
+        "title": "Explain Plan (Pro)",
+        "category": "SQL Client"
+      },
+      {
+        "command": "zovoSql.explainAnalyze",
+        "title": "Explain Analyze: Run and Measure (Pro)",
+        "category": "SQL Client"
+      },
+      {
+        "command": "zovoSql.compareData",
+        "title": "Compare Table Data (Pro)",
+        "category": "SQL Client"
+      },
+      {
         "command": "zovoSql.enterLicenseKey",
         "title": "Zovo: Enter license key",
         "category": "SQL Client"
@@ -268,6 +283,12 @@
         "key": "ctrl+alt+c",
         "mac": "cmd+alt+c",
         "when": "zovoSql.running"
+      },
+      {
+        "command": "zovoSql.explainPlan",
+        "key": "ctrl+alt+e",
+        "mac": "cmd+alt+e",
+        "when": "editorTextFocus && editorLangId == sql"
       }
     ],
     "menus": {
@@ -388,6 +409,11 @@
           "command": "zovoSql.copyName",
           "when": "view == zovoSql.connections && viewItem =~ /^(table|view|column|index|database|schema)/",
           "group": "9_copy@1"
+        },
+        {
+          "command": "zovoSql.compareData",
+          "when": "view == zovoSql.connections && viewItem == table && config.zovoSql.showProFeatures",
+          "group": "2_tools@2"
         }
       ],
       "editor/title": [
@@ -422,6 +448,11 @@
           "command": "zovoSql.saveQuery",
           "when": "editorLangId == sql && config.zovoSql.showProFeatures",
           "group": "zovoSql@4"
+        },
+        {
+          "command": "zovoSql.explainPlan",
+          "when": "editorLangId == sql && config.zovoSql.showProFeatures",
+          "group": "zovoSql@5"
         }
       ],
       "commandPalette": [
@@ -479,6 +510,18 @@
         },
         {
           "command": "zovoSql.unlockWithSponsors",
+          "when": "config.zovoSql.showProFeatures"
+        },
+        {
+          "command": "zovoSql.explainPlan",
+          "when": "editorLangId == sql && config.zovoSql.showProFeatures"
+        },
+        {
+          "command": "zovoSql.explainAnalyze",
+          "when": "editorLangId == sql && config.zovoSql.showProFeatures"
+        },
+        {
+          "command": "zovoSql.compareData",
           "when": "config.zovoSql.showProFeatures"
         }
       ]
@@ -542,7 +585,7 @@
         "zovoSql.showProFeatures": {
           "type": "boolean",
           "default": true,
-          "description": "Show the Zovo Pro tools (ER diagram, schema compare, CSV import, query library) and the Zovo Pro commands in menus and the command palette. Set it to false to hide them. Everything free keeps working."
+          "description": "Show the Zovo Pro tools (Explain Plan, table data compare, ER diagram, schema compare, CSV import, query library) and the Zovo Pro commands in menus and the command palette. Set it to false to hide them. Everything free keeps working."
         }
       }
     },

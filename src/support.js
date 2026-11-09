@@ -393,10 +393,26 @@ function marketplaceUrl(id) {
   return `https://marketplace.visualstudio.com/items?itemName=${encodeURIComponent(id)}`;
 }
 
-/** The review tab of a listing. '' when the id is empty. */
-function reviewUrl(id) {
+// The store this editor installs from (same rule as rate.js storeFor): VS Code uses the Marketplace; Cursor,
+// Windsurf, VSCodium and other VS Code-based editors use Open VSX. registerSupport() sets it from vscode.env.
+let STORE = 'marketplace';
+function storeFor(env) {
+  const scheme = String((env && env.uriScheme) || '').toLowerCase();
+  const app = String((env && env.appName) || '').toLowerCase();
+  if (!scheme && !app) return 'marketplace';
+  if (/^vscode(-insiders|-exploration)?$/.test(scheme) || app.startsWith('visual studio code')) return 'marketplace';
+  return 'openvsx';
+}
+
+/** The review tab of a listing in the store of this editor (or `store`). '' when the id is empty. */
+function reviewUrl(id, store) {
   const x = String(id || '');
-  return x ? `${marketplaceUrl(x)}&ssr=false#review-details` : '';
+  if (!x) return '';
+  if ((store || STORE) === 'openvsx') {
+    const dot = x.indexOf('.');
+    return `https://open-vsx.org/extension/${encodeURIComponent(dot > 0 ? x.slice(0, dot) : x)}/${encodeURIComponent(dot > 0 ? x.slice(dot + 1) : '')}/reviews`;
+  }
+  return `${marketplaceUrl(x)}&ssr=false#review-details`;
 }
 
 /** How closely two products are used together. 0 when they are not a pair. */
@@ -497,7 +513,7 @@ function footerHtml(prefix, show, extraClass) {
   const sep = '<span class="zovo-sep" aria-hidden="true">·</span>';
   // Order: Rate · More free viewers · Sponsor · PayPal (only when set) · Hide. Rate comes first: ratings help people find the extension.
   return `<div class="${cls}" id="zovo-support">`
-    + (reviewUrl(SELF_ID) ? `<a href="${reviewUrl(SELF_ID)}" title="Rate or review this extension on the Marketplace">Rate</a>` + sep : '')
+    + (reviewUrl(SELF_ID) ? `<a href="${reviewUrl(SELF_ID)}" title="Rate or review this extension on ${STORE === 'openvsx' ? 'Open VSX' : 'the Marketplace'}">Rate</a>` + sep : '')
     + `<a href="command:${c.more}" title="Other free extensions by Zovo">More free viewers</a>` + sep
     + `<a href="command:${c.sponsor}" title="Open the GitHub Sponsors page">Sponsor</a>` + sep
     + (paypalUrl() ? `<a href="${paypalUrl()}" title="Support the developer on PayPal">PayPal</a>` + sep : '')
@@ -527,6 +543,7 @@ function showLinks(vscode, prefix) {
  */
 function registerSupport(opts) {
   const { vscode, context, prefix, selfId } = opts;
+  try { STORE = storeFor(vscode.env); } catch { STORE = 'marketplace'; }
   const c = commandIds(prefix);
   const open = (url) => vscode.env.openExternal(vscode.Uri.parse(url));
 
@@ -569,7 +586,7 @@ function registerSupport(opts) {
 
 module.exports = {
   FUNDING, GITHUB_PROFILE, SELF_ID, LIVE, QUEUED, PAIRS, RELATED, PUBLISHER_URL, SETTING, FOOTER_CSS,
-  fundingLinks, sponsorUrl, paypalUrl, marketplaceUrl, reviewUrl, pairWeight, otherProducts, relatedProducts, pickItems,
+  fundingLinks, sponsorUrl, paypalUrl, marketplaceUrl, reviewUrl, storeFor, pairWeight, otherProducts, relatedProducts, pickItems,
   commandIds, commandUris,
   footerHtml, footerMarkdown, showLinks, registerSupport,
 };

@@ -10,7 +10,7 @@ const fs = require('fs');
 const { ConnectionStore, SessionManager } = require('./connections');
 const { ExplorerProvider } = require('./tree');
 const { ResultsPanel, runExport } = require('./results');
-const { splitStatements, statementAt, isUnboundedWrite } = require('./core/sqlsplit');
+const { splitStatements, statementAt, isUnboundedWrite, isReadOnlyStatement } = require('./core/sqlsplit');
 const { selectAll, qualified } = require('./core/dialect');
 const { validate, displayUrl } = require('./core/connstr');
 const { completionItems } = require('./completion');
@@ -18,6 +18,7 @@ const { buildHtml } = require('./html');
 const { createRatingPrompt } = require('./rate');
 const { registerSupport } = require('./support');
 const pro = require('./pro');
+const pro2 = require('./pro2');
 
 const BIND_KEY = 'zovoSql.bindings';
 const HISTORY_KEY = 'zovoSql.history';
@@ -515,6 +516,137 @@ function activate(context) {
     if (!(await proApi.allow('Query library', 'The query library keeps named queries on this computer and opens them on any connection.'))) return;
     await newQueryFor(p.q.conn && store.get(p.q.conn) ? { conn: p.q.conn, database: p.q.database } : null, p.q.sql + '\n');
   });
+
+  // ---------- Pro (0.2.0): Explain Plan ----------
+  const EXPLAIN_DETAIL = 'Explain Plan shows how the database runs a query: each step with its time or cost, the slowest step marked, and plain hints such as a full scan on a filtered table, a sort that spilled to disk or a bad row estimate.';
+  async function explain(analyze) {
+    const ed = vscode.window.activeTextEditor;
+    if (!ed || ed.document.languageId !== 'sql') { vscode.window.showInformationMessage('Open a .sql file and put the cursor in a SELECT, UPDATE or DELETE statement.'); return null; }
+    const doc = ed.document;
+    let b = bindingOf(doc);
+    if (!b) {
+      const c = await pickConnection('Explain on which connection?');
+      if (!c) return null;
+      b = { conn: c.id, database: c.type === 'sqlite' ? '' : c.database || '' };
+      bind(doc, b);
+    }
+    const c = store.get(b.conn);
+    const st = ed.selection.isEmpty ? statementAt(doc.getText(), doc.offsetAt(ed.selection.active), c.type) : { text: doc.getText(ed.selection) };
+    if (!st || !st.text.trim()) { vscode.window.showInformationMessage('There is no SQL statement at the cursor.'); return null; }
+    if (analyze && c.type === 'sqlite') analyze = false;
+    if (analyze && !isReadOnlyStatement(st.text, c.type)) {
+      vscode.window.showWarningMessage('Explain Analyze runs the statement, so it is offered for queries that only read. Use Explain Plan for this statement: it shows the estimate without running it.');
+      return null;
+    }
+    if (!(await proApi.allow('Explain plan', EXPLAIN_DETAIL))) return null;
+    let binding;
+    try { binding = await bindingSession(b); } catch (e) { if (!e.cancelled) vscode.window.showErrorMessage(e.message); return null; }
+    const sql = pro2.explainSql(c.type, st.text, analyze);
+    let rows = [];
+    setRunning(1);
+    try {
+      const runIt = (q) => vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: analyze ? 'Running EXPLAIN ANALYZE' : 'Reading the query plan' }, () => binding.session.run(q, 100000));
+      let r;
+      try { r = await runIt(sql); } catch (e) {
+        // MariaDB: EXPLAIN ANALYZE is a syntax error there; ANALYZE FORMAT=JSON runs and measures the query.
+        if (!(analyze && c.type === 'mysql' && /syntax/i.test(String(e && e.message)))) throw e;
+        r = await runIt(pro2.mariaAnalyzeSql(st.text));
+      }
+      rows = r.rows || [];
+      if (!r.done && r.fetchMore) rows = rows.concat(await r.fetchMore(100000));
+      if (r.close) await r.close();
+    } catch (e) {
+      if (st.start !== undefined) markError(doc, st, e);
+      vscode.window.showErrorMessage(`Explain failed: ${e.message || e}`);
+      return null;
+    } finally { setRunning(-1); }
+    let plan;
+    try { plan = pro2.parsePlan(c.type, analyze, rows); } catch (e) { vscode.window.showErrorMessage(`The plan could not be read: ${e.message || e}`); return null; }
+    const rawText = rows.map((r) => r.map((v) => (v === null || v === undefined ? '' : typeof v === 'string' ? v : JSON.stringify(v))).join(' | ')).join('\n');
+    let pretty = rawText;
+    try { if (c.type !== 'sqlite' && !analyze) pretty = JSON.stringify(JSON.parse(rawText), null, 2); } catch { /* text plan */ }
+    const title = `Plan: ${path.posix.basename(doc.uri.path)}`;
+    const panel = vscode.window.createWebviewPanel('zovoSql.plan', title, { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true }, { enableScripts: false });
+    panel.webview.html = pro2.planHtml({ plan, sql: st.text.trim(), title: `${analyze ? 'Explain Analyze' : 'Explain Plan'} · ${c.name}`, dialect: DIALECT_NAME[c.type], cspSource: panel.webview.cspSource, analyzed: plan.analyzed, rawText: pretty });
+    return { panel, plan };
+  }
+  reg('explainPlan', () => explain(false));
+  reg('explainAnalyze', () => explain(true));
+
+  // ---------- Pro (0.2.0): Table Data Compare ----------
+  const COMPARE_DETAIL = 'Data compare reads two tables (on any two connections) in key order, lists the rows that are only on one side or changed, and writes a SQL script that makes the second table match the first.';
+  async function tablePick(conn, title) {
+    const t = conn ? conn : await schemaNodePick(null, title);
+    if (!t) return null;
+    const list = await t.session.tables(t.schema || undefined);
+    const p = await vscode.window.showQuickPick(list.filter((x) => x.kind === 'table').map((x) => ({ label: x.name, description: x.rows !== null && x.rows !== undefined ? `about ${x.rows.toLocaleString('en-US')} rows` : '' })), { title: `${title} (${t.label})` });
+    if (!p) return null;
+    return { c: t.c, session: t.session, schema: t.schema, table: p.label, label: `${t.label} · ${p.label}` };
+  }
+  async function compareData(node, opts = {}) {
+    let A;
+    if (node && node.table) {
+      const { c, session } = await nodeSession(node);
+      const schema = c.type === 'mysql' ? node.database : (c.type === 'postgres' ? node.schema : '');
+      A = { c, session, schema, table: node.table, label: `${c.name}${schema ? ` · ${schema}` : ''} · ${node.table}` };
+    } else {
+      A = await tablePick(null, 'Compare data: first table');
+      if (!A) return null;
+    }
+    const conn = await schemaNodePick(null, `Compare ${A.table} with a table on which connection?`);
+    if (!conn) return null;
+    const others = await conn.session.tables(conn.schema || undefined);
+    const same = others.find((x) => x.name === A.table) || others.find((x) => x.name.toLowerCase() === A.table.toLowerCase());
+    let B;
+    const items = (same ? [{ label: same.name, description: 'same name' }] : []).concat(others.filter((x) => x.kind === 'table' && x !== same).map((x) => ({ label: x.name })));
+    const p = opts.tableB ? { label: opts.tableB } : await vscode.window.showQuickPick(items, { title: `Compare ${A.label} with which table? (${conn.label})` });
+    if (!p) return null;
+    B = { c: conn.c, session: conn.session, schema: conn.schema, table: p.label, label: `${conn.label} · ${p.label}` };
+    if (!(await proApi.allow('Data compare', COMPARE_DETAIL))) return null;
+    const [colsA, colsB] = await Promise.all([A.session.columns(A.schema, A.table), B.session.columns(B.schema, B.table)]);
+    const key = colsA.filter((x) => x.pk).map((x) => x.name);
+    if (!key.length) { vscode.window.showWarningMessage(`${A.table} has no primary key. Data compare matches rows by the primary key of the first table.`); return null; }
+    const byName = new Map(colsB.map((x) => [x.name, x]));
+    const byLower = new Map(colsB.map((x) => [x.name.toLowerCase(), x]));
+    const match = (n) => byName.get(n) || byLower.get(n.toLowerCase()) || null;
+    const missingKey = key.filter((k) => !match(k));
+    if (missingKey.length) { vscode.window.showWarningMessage(`${B.label} has no column ${missingKey.join(', ')}, so its rows cannot be matched by the key of ${A.table}.`); return null; }
+    const ordered = key.concat(colsA.map((x) => x.name).filter((n) => !key.includes(n) && match(n)));
+    const skipped = colsA.map((x) => x.name).filter((n) => !match(n)).concat(colsB.map((x) => x.name).filter((n) => !colsA.some((a) => a.name.toLowerCase() === n.toLowerCase())));
+    const namesB = ordered.map((n) => match(n).name);
+    const typesA = ordered.map((n) => colsA.find((x) => x.name === n).type);
+    const sqlA = pro2.compareSelect({ schema: A.schema, table: A.table, columns: colsA }, ordered, key, A.c.type);
+    const sqlB = pro2.compareSelect({ schema: B.schema, table: B.table, columns: colsB }, namesB, namesB.slice(0, key.length), B.c.type);
+    let stop = false;
+    const ra = pro2.tracked(pro2.pullRows((onBatch, shouldStop) => A.session.exportQuery(sqlA, onBatch, () => stop || shouldStop(), 2000)));
+    const rb = pro2.tracked(pro2.pullRows((onBatch, shouldStop) => B.session.exportQuery(sqlB, onBatch, () => stop || shouldStop(), 2000)));
+    let res;
+    try {
+      res = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Comparing ${A.table} with ${B.table}`, cancellable: true }, (progress, token) => {
+        token.onCancellationRequested(() => { stop = true; });
+        return pro2.compareRows({ a: ra, b: rb, columns: ordered, keyCount: key.length, types: typesA, shouldStop: () => stop, onProgress: (r) => progress.report({ message: `${r.rowsA.toLocaleString('en-US')} rows read, ${(r.onlyA + r.onlyB + r.changed).toLocaleString('en-US')} differences` }) });
+      });
+    } finally {
+      stop = true;
+      await Promise.all([ra.stop(), rb.stop()]).catch(() => {});
+    }
+    const report = pro2.compareReport({ res, columns: ordered, keyCount: key.length, labelA: A.label, labelB: B.label }) + (skipped.length ? `\nNot compared (only on one side): ${skipped.join(', ')}.\n` : '');
+    const repDoc = await vscode.workspace.openTextDocument({ language: 'markdown', content: report });
+    await vscode.window.showTextDocument(repDoc, { preview: false });
+    const diffs = res.onlyA + res.onlyB + res.changed;
+    let scriptDoc = null;
+    if (diffs && !res.outOfOrder) {
+      const script = pro2.syncScript({ res, columns: namesB, keyCount: key.length, target: { schema: B.schema, table: B.table }, dialect: B.c.type, labelA: A.label, labelB: B.label });
+      scriptDoc = await vscode.workspace.openTextDocument({ language: 'sql', content: script });
+      bind(scriptDoc, { conn: B.c.id, database: B.c.type === 'mysql' ? B.schema : (B.c.type === 'sqlite' ? '' : B.c.database || ''), schema: B.c.type === 'postgres' ? B.schema : undefined });
+      await vscode.window.showTextDocument(scriptDoc, { preview: false, viewColumn: vscode.ViewColumn.Beside });
+    }
+    vscode.window.showInformationMessage(diffs
+      ? `${res.changed.toLocaleString('en-US')} changed, ${res.onlyA.toLocaleString('en-US')} only in ${A.table}, ${res.onlyB.toLocaleString('en-US')} only in ${B.label}. The sync script (not run) makes ${B.table} match ${A.table}.`
+      : (res.outOfOrder ? 'The compare stopped: the two servers sort the keys differently. See the report.' : `The ${res.same.toLocaleString('en-US')} rows are equal on both sides.`));
+    return { res, report: repDoc, script: scriptDoc };
+  }
+  reg('compareData', (node) => compareData(node));
 
   // Close every connection when the window closes.
   context.subscriptions.push({ dispose: () => { sessions.close().catch(() => {}); } });

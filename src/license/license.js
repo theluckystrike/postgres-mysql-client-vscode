@@ -23,7 +23,9 @@ const crypto = require('crypto');
 const PUBLIC_KEY_SPKI_B64 = 'MCowBQYDK2VwAyEAtXEc+9zkJ34oa1Id1oSrAifTSxqhvKtMKZOo5ieX90k=';
 const KEY_PREFIX = 'ZOVO1.';
 const SIG_CONTEXT = KEY_PREFIX; // the signature covers the prefix
-const BUNDLE_SKUS = ['zovo-pro']; // "Zovo Pro: all viewers"
+// "Zovo Pro: all viewers" and the 5-seat team licence. Team keys sold today carry sku zovo-pro + q (seats), because
+// builds released before 2026-11-09 know only 'zovo-pro'; 'zovo-pro-team' is accepted here for keys made later.
+const BUNDLE_SKUS = ['zovo-pro', 'zovo-pro-team'];
 const CLAIM_URL = 'https://license.zovo.one/claim?session_id=';
 const BUY_URL = 'https://license.zovo.one/buy/'; // + sku: 302 to the current Stripe Payment Link
 const SECRET_KEY = 'zovo.license.key';

@@ -1,14 +1,16 @@
 'use strict';
-// Shared Zovo rating ask, v2.1 (factory/sprint/rating/rate.js, copied to src/rate.js in each extension).
+// Shared Zovo rating ask, v2.2 (factory/sprint/rating/rate.js, copied to src/rate.js in each extension).
 // No network and no telemetry. State lives only in context.globalState. The one outbound action is the
-// Marketplace review page, opened by the user's own click on "Rate it".
+// review page of the store the editor installs from (VS Code: Marketplace; Cursor, Windsurf, VSCodium and other
+// Open VSX editors: Open VSX), opened by the user's own click on "Rate it".
 //
 // Rules:
 // - Ask only after the user opened 2 files without an error, in 2 window sessions that started at least 4 hours
-//   apart. A session starts at its first file opened without an error.
+//   apart. A session starts at its first file opened without an error. A window that stays open starts a new
+//   session at its first good file 4 hours or more after its current session started (v2.2).
 // - Show the ask 3 seconds after that success, not while the file renders, and only if the rules still hold then.
 // - Files from the extension's own folder or storage (walkthrough samples) do not count.
-// - "Rate it" opens the review page and ends it. "No thanks" ends it.
+// - "Rate it" opens the review page of the store this editor uses and ends it. "No thanks" ends it.
 // - "Later" (or closing the message) asks again one time, 7 days later at the earliest.
 // - At most 2 asks in all, at most 1 per window session, only while the window has focus.
 // - Never after an error: no ask in a session where a file failed to open, and none for 24 hours after a failure.
@@ -17,7 +19,7 @@
 
 const STATE_KEY = 'zovo.rating.v2'; // v2.1 keeps the v2 key and reads v2 states in place
 const OLD_KEY = 'zovo.rating.v1';
-const RULES = '2.1';
+const RULES = '2.2';
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const MIN_FILES = 2; // files opened without an error before the first ask
@@ -33,6 +35,8 @@ const NEVER = 'No thanks';
 // Fake clock for manual and VS Code tests: shifts "now" by these many days and hours. Unset in normal use.
 const CLOCK_ENV = 'ZOVO_RATING_CLOCK_OFFSET_DAYS';
 const CLOCK_ENV_HOURS = 'ZOVO_RATING_CLOCK_OFFSET_HOURS';
+const MARKETPLACE = 'marketplace';
+const OPENVSX = 'openvsx';
 
 function freshState() {
   return { rules: RULES, count: 0, sessions: [], asks: 0, nextAskAt: 0, lastErrorAt: 0, done: false };
@@ -145,8 +149,31 @@ function recordAnswer(state, answer, now) {
   return s;
 }
 
-function reviewUrl(extensionId) {
-  return `https://marketplace.visualstudio.com/items?itemName=${encodeURIComponent(extensionId)}&ssr=false#review-details`;
+/**
+ * The store this editor installs extensions from, read from vscode.env: 'marketplace' for VS Code (desktop, web,
+ * Insiders, Codespaces), 'openvsx' for the other VS Code-based editors (Cursor, Windsurf, VSCodium, Trae, Kiro,
+ * Positron, code-server, Gitpod). They install from Open VSX, and their users have no reason to sign in to the
+ * Microsoft Marketplace. Unknown or missing values keep the Marketplace.
+ */
+function storeFor(env) {
+  const scheme = String((env && env.uriScheme) || '').toLowerCase();
+  const app = String((env && env.appName) || '').toLowerCase();
+  if (!scheme && !app) return MARKETPLACE;
+  if (/^vscode(-insiders|-exploration)?$/.test(scheme)) return MARKETPLACE;
+  if (app.startsWith('visual studio code')) return MARKETPLACE;
+  return OPENVSX;
+}
+
+/** The review page of an extension: the Marketplace review tab, or the Open VSX reviews tab. */
+function reviewUrl(extensionId, store) {
+  const id = String(extensionId || '');
+  if (store === OPENVSX) {
+    const dot = id.indexOf('.');
+    const ns = dot > 0 ? id.slice(0, dot) : id;
+    const name = dot > 0 ? id.slice(dot + 1) : '';
+    return `https://open-vsx.org/extension/${encodeURIComponent(ns)}/${encodeURIComponent(name)}/reviews`;
+  }
+  return `https://marketplace.visualstudio.com/items?itemName=${encodeURIComponent(id)}&ssr=false#review-details`;
 }
 
 function messageFor(name) {
@@ -207,6 +234,7 @@ function createRatingPrompt(opts) {
   const usable = !!(store && typeof store.get === 'function' && typeof store.update === 'function');
   const safe = (fn, d) => { try { return fn(); } catch { return d; } };
   const roots = safe(() => sampleRoots(context), []);
+  const reviewStore = safe(() => storeFor(vscode.env), MARKETPLACE);
   let askedThisSession = false;
   let errorThisSession = false;
   let sessionStart = 0;
@@ -233,13 +261,18 @@ function createRatingPrompt(opts) {
     const pick = await vscode.window.showInformationMessage(messageFor(name), RATE, LATER, NEVER);
     st = recordAnswer(load(), pick, now());
     await store.update(STATE_KEY, st);
-    if (pick === RATE) await vscode.env.openExternal(vscode.Uri.parse(reviewUrl(extensionId)));
+    if (pick === RATE) await vscode.env.openExternal(vscode.Uri.parse(reviewUrl(extensionId, reviewStore)));
   }
 
   async function success(target) {
     if (!usable || isSampleFile(target, roots)) return;
     const e = env();
-    if (!sessionStart) sessionStart = e.now;
+    // A window that stays open for days is still used on several occasions: its first good file 4 hours or more
+    // after the current session started begins a new session (and a failure from the earlier one no longer blocks).
+    if (!sessionStart || e.now - sessionStart >= MIN_GAP_MS) {
+      if (sessionStart) errorThisSession = false;
+      sessionStart = e.now;
+    }
     const s = recordSuccess(load(), e.now, sessionStart);
     await store.update(STATE_KEY, s);
     if (busy || !decide(s, e)) return;
@@ -267,7 +300,7 @@ function createRatingPrompt(opts) {
 
 module.exports = {
   createRatingPrompt, decide, recordSuccess, recordFailure, recordAnswer, normalize, freshState, fromV1,
-  spreadMs, cleanSessions, dayKey, dayEnd, reviewUrl, messageFor, clockOffsetMs, isSampleFile, sampleRoots, targetPath,
+  spreadMs, cleanSessions, dayKey, dayEnd, reviewUrl, storeFor, messageFor, clockOffsetMs, isSampleFile, sampleRoots, targetPath,
   STATE_KEY, OLD_KEY, RULES, HOUR_MS, DAY_MS, MIN_FILES, MIN_GAP_MS, MAX_SESSIONS, ASK_DELAY_MS, LATER_DAYS, MAX_ASKS,
-  ERROR_QUIET_MS, RATE, LATER, NEVER, CLOCK_ENV, CLOCK_ENV_HOURS,
+  ERROR_QUIET_MS, RATE, LATER, NEVER, CLOCK_ENV, CLOCK_ENV_HOURS, MARKETPLACE, OPENVSX,
 };

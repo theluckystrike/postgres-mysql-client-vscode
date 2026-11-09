@@ -2,7 +2,7 @@
 
 A free PostgreSQL client and MySQL client, with unlimited connections, free row edits and streamed CSV export. Also MariaDB and SQLite. Press Ctrl+Enter (Cmd+Enter on macOS) to run SQL. No sign-in and no subscription.
 
-Optional Zovo Pro (USD 19 once, every Zovo extension) adds an ER diagram, schema compare, CSV import and a query library. Everything that is free today stays free.
+Optional Zovo Pro (USD 19 once, every Zovo extension) adds Explain Plan with hints, table data compare with a sync script, an ER diagram, schema compare, CSV import and a query library. Each Pro tool has 3 free tries. Everything that is free today stays free.
 
 ![A PostgreSQL query on the Pagila sample database in VS Code: the SQL file on the left, 1,000 result rows in the grid on the right, and the Database Explorer with tables, columns and row counts](images/screenshot-dark.png)
 
@@ -17,7 +17,7 @@ Measured against the complaints in reviews of other database extensions on the M
 | "It allows only 2 connections before forcing you to pay annual subscription" ([review, 2025-01-08](https://marketplace.visualstudio.com/items?itemName=cweijan.vscode-postgresql-client2&ssr=false#review-details)) | Unlimited connections, free. The gate test used 7 connections on one machine. |
 | "now you can not even edit a table without paying" ([review, 2025-12-26](https://marketplace.visualstudio.com/items?itemName=DBCode.dbcode&ssr=false#review-details)) | Editing rows is free: edit a cell, add or delete a row. You see the exact SQL first, and it runs in one transaction. |
 | "this will automatically run 'SELECT 1' statements to ensure that it remains connected" ([review, 2026-02-05](https://marketplace.visualstudio.com/items?itemName=DBCode.dbcode&ssr=false#review-details)) | No keep-alive and no polling. In the gate test, the PostgreSQL and MariaDB statement logs showed 0 statements in 60 idle seconds while the extension had connections open. |
-| "a subscription makes it an immediate no-go. Maybe worth it if it was a one time purchase" ([review, 2025-11-07](https://marketplace.visualstudio.com/items?itemName=cweijan.vscode-postgresql-client2&ssr=false#review-details)) | No subscription. Everything above is free. Four extra tools are Zovo Pro: USD 19, paid once. |
+| "a subscription makes it an immediate no-go. Maybe worth it if it was a one time purchase" ([review, 2025-11-07](https://marketplace.visualstudio.com/items?itemName=cweijan.vscode-postgresql-client2&ssr=false#review-details)) | No subscription. Everything above is free. Six extra tools are Zovo Pro: USD 19, paid once. |
 
 ## Features (free)
 
@@ -48,8 +48,10 @@ Measured against the complaints in reviews of other database extensions on the M
 
 ## Zovo Pro (USD 19, paid once, for every Zovo extension)
 
-You can try each Pro tool 3 times for free. After that, one quiet message explains how to unlock it. There are no popups, ads or countdowns, and nothing above is ever locked.
+You can try each Pro tool 3 times for free; the status bar says which try it was. After that, starting the tool shows one message that explains how to unlock it. There are no popups, ads or countdowns, and nothing above is ever locked.
 
+- Explain Plan (Ctrl+Alt+E, Cmd+Alt+E on macOS): how the database runs the statement at the cursor, as a tree of steps with cost bars. It marks the slowest step and writes plain hints: a full scan of a filtered table (with the rows it threw away), a sort that spilled to disk, a step with no index, a row estimate that is 10 times off. "Explain Analyze" runs a read-only query and shows the real time and rows per step (PostgreSQL `EXPLAIN ANALYZE`, MySQL 8 `EXPLAIN ANALYZE`, MariaDB `ANALYZE FORMAT=JSON`). SQLite shows `EXPLAIN QUERY PLAN`. In the release tests on PostgreSQL 16, a filter on a 5,000,000-row table showed "reads the whole table and filters it".
+- Table data compare: two tables on any two connections (PostgreSQL against MariaDB works), matched by primary key. You get a report (rows equal, changed, only on one side, with the first rows of each) and a SQL script that makes the second table match the first. The script is opened, not run: you read it, then run it with Ctrl+Alt+Enter. Both tables are read in key order as a stream: in the release tests, 5,000,000 rows on PostgreSQL 16 against 5,000,000 on MariaDB compared in 25 seconds while memory grew by about 130 MB. Text keys are sorted by code point on both servers, so different collations do not break the match.
 - ER diagram of a schema: tables, keys and foreign-key links. Drag to arrange, then save it as SVG.
 - Schema compare: two schemas side by side in VS Code's diff view, from any two connections.
 - CSV import into a table: the file is read as a stream, header names are matched to columns, and rows are inserted in batches of 500.

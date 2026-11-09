@@ -1,5 +1,5 @@
 'use strict';
-// Tests for the shared rating ask v2.1 (factory/sprint/rating). Copied unchanged into each extension's test/.
+// Tests for the shared rating ask v2.2 (factory/sprint/rating). Copied unchanged into each extension's test/.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -27,7 +27,7 @@ test('rating: message and buttons', () => {
   assert.deepEqual([R.RATE, R.LATER, R.NEVER], ['Rate it', 'Later', 'No thanks']);
 });
 
-test('rating: v2.1 constants', () => {
+test('rating: v2.1 constants (v2.2 keeps them)', () => {
   assert.equal(R.MIN_FILES, 2);
   assert.equal(R.MIN_GAP_MS, 4 * HOUR);
   assert.equal(R.ASK_DELAY_MS, 3000);
@@ -238,9 +238,26 @@ test('rating: fake clock only from the env variables, bounded', () => {
   assert.equal(R.clockOffsetMs({ [R.CLOCK_ENV_HOURS]: '100000' }), 0);
 });
 
-test('rating: review link points at this extension', () => {
+test('rating: review link points at this extension, in the store of the editor', () => {
   const id = `${pkg.publisher}.${pkg.name}`;
   assert.equal(R.reviewUrl(id), `https://marketplace.visualstudio.com/items?itemName=${id}&ssr=false#review-details`);
+  assert.equal(R.reviewUrl(id, R.MARKETPLACE), R.reviewUrl(id));
+  assert.equal(R.reviewUrl(id, R.OPENVSX), `https://open-vsx.org/extension/${pkg.publisher}/${pkg.name}/reviews`);
+});
+
+test('rating v2.2: the store comes from the editor (VS Code: Marketplace, others: Open VSX)', () => {
+  const st = (appName, uriScheme) => R.storeFor({ appName, uriScheme });
+  assert.equal(st('Visual Studio Code', 'vscode'), R.MARKETPLACE);
+  assert.equal(st('Visual Studio Code - Insiders', 'vscode-insiders'), R.MARKETPLACE);
+  assert.equal(st('Visual Studio Code', undefined), R.MARKETPLACE, 'vscode.dev and Codespaces');
+  assert.equal(st('Cursor', 'cursor'), R.OPENVSX);
+  assert.equal(st('Windsurf', 'windsurf'), R.OPENVSX);
+  assert.equal(st('VSCodium', 'vscodium'), R.OPENVSX);
+  assert.equal(st('Trae', 'trae'), R.OPENVSX);
+  assert.equal(st('code-server', 'code-oss'), R.OPENVSX);
+  assert.equal(st('Positron', 'positron'), R.OPENVSX);
+  assert.equal(R.storeFor(undefined), R.MARKETPLACE, 'unknown keeps the Marketplace');
+  assert.equal(R.storeFor({}), R.MARKETPLACE);
 });
 
 test('rating: manifest has an askForRating setting, default true', () => {
@@ -395,7 +412,7 @@ test('rating: wiring respects the setting, v1 and v2 answers and a missing globa
   const v2 = fake({ answer: R.RATE, data: [[R.STATE_KEY, { count: 12, days: ['2026-10-20', '2026-10-21'], asks: 1, nextAskAt: 0, lastErrorAt: 0, done: true }]] });
   await v2.make().success();
   assert.equal(v2.calls.shown.length, 0, '"No thanks" in v2 is kept');
-  assert.equal(v2.data.get(R.STATE_KEY).rules, '2.1', 'stored in the v2.1 shape');
+  assert.equal(v2.data.get(R.STATE_KEY).rules, R.RULES, 'stored in the current shape');
 
   const v2open = fake({ answer: R.LATER, data: [[R.STATE_KEY, { count: 2, days: ['2026-10-30'], asks: 0, nextAskAt: 0, lastErrorAt: 0, done: false }]] });
   await v2open.make().success();
@@ -416,6 +433,56 @@ test('rating: wiring never throws when VS Code calls fail', async () => {
   const g = fake();
   Object.defineProperty(g.context, 'extensionUri', { get() { throw new Error('gone'); } });
   await g.make().success();
+});
+
+test('rating v2.2: in Cursor (Open VSX), "Rate it" opens the Open VSX reviews page', async () => {
+  const f = fake({ answer: R.RATE });
+  f.vscode.env.appName = 'Cursor';
+  f.vscode.env.uriScheme = 'cursor';
+  await f.make().success(fileUri('/w/a.docx'));
+  f.clock.t = T0 + 6 * HOUR;
+  await f.make().success(fileUri('/w/b.docx'));
+  assert.equal(f.calls.shown.length, 1);
+  assert.deepEqual(f.calls.opened, ['https://open-vsx.org/extension/zovo/x/reviews']);
+  const g = fake({ answer: R.RATE });
+  g.vscode.env.appName = 'Visual Studio Code';
+  g.vscode.env.uriScheme = 'vscode';
+  await g.make().success(fileUri('/w/a.docx'));
+  g.clock.t = T0 + 6 * HOUR;
+  await g.make().success(fileUri('/w/b.docx'));
+  assert.deepEqual(g.calls.opened, ['https://marketplace.visualstudio.com/items?itemName=zovo.x&ssr=false#review-details']);
+});
+
+test('rating v2.2: a window that stays open starts a new session 4 hours after its session start', async () => {
+  const f = fake({ answer: R.LATER });
+  const p = f.make(); // one window, never closed
+  await p.success(fileUri('/w/a.docx'));
+  f.clock.t = T0 + 3 * HOUR + 59 * 60 * 1000;
+  await p.success(fileUri('/w/b.docx'));
+  assert.equal(f.calls.shown.length, 0, '3 h 59 min later in the same window: still one session');
+  f.clock.t = T0 + 6 * HOUR;
+  await p.success(fileUri('/w/c.docx'));
+  assert.equal(f.calls.shown.length, 1, '6 h later in the same window: the 2nd session, ask');
+  assert.equal(f.data.get(R.STATE_KEY).sessions.length, 2);
+  f.clock.t = T0 + 20 * DAY;
+  await p.success(fileUri('/w/d.docx'));
+  assert.equal(f.calls.shown.length, 1, 'still at most 1 ask per window');
+});
+
+test('rating v2.2: in a long window, a failure blocks its session and 24 hours, not the later sessions', async () => {
+  const f = fake({ answer: R.NEVER });
+  await f.make().success(fileUri('/w/a.docx')); // an earlier window: session 1
+  f.clock.t = T0 + 6 * HOUR;
+  const p = f.make();
+  await p.failure();
+  await p.success(fileUri('/w/b.docx'));
+  assert.equal(f.calls.shown.length, 0, 'same session as the failure');
+  f.clock.t = T0 + 6 * HOUR + 23 * HOUR;
+  await p.success(fileUri('/w/c.docx'));
+  assert.equal(f.calls.shown.length, 0, 'new session, but within 24 h of the failure');
+  f.clock.t = T0 + 6 * HOUR + 30 * HOUR;
+  await p.success(fileUri('/w/d.docx'));
+  assert.equal(f.calls.shown.length, 1, '30 h after the failure, a new session in the same window: ask');
 });
 
 test('rating: no network module and no telemetry in rate.js', () => {

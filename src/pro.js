@@ -1,5 +1,6 @@
 'use strict';
-// Zovo Pro features: ER diagram, schema compare, CSV import into a table and the saved query library.
+// Zovo Pro features: ER diagram, schema compare, CSV import into a table and the saved query library;
+// from 0.2.0 also Explain Plan / Explain Analyze and table data compare (src/pro2.js).
 // Everything else (unlimited connections, queries, row editing, export, read-only mode, history,
 // autocomplete) is free and stays free. Each Pro feature can be tried 3 times; after that one quiet
 // explanation offers the unlock (GitHub Sponsors or a license key, both checked without a server of ours).
@@ -31,6 +32,8 @@ function createPro(vscode, context) {
     if (used < FREE_TRIES) {
       tries[feature] = used + 1;
       await context.globalState.update(TRIES_KEY, tries);
+      const left = FREE_TRIES - used - 1;
+      vscode.window.setStatusBarMessage(`SQL Client: ${feature} is a Zovo Pro tool. Free try ${used + 1} of ${FREE_TRIES}${left ? ` (${left} left)` : ', the last one'}.`, 8000);
       return true;
     }
     return license.requirePro(feature, `${detail} You used your ${FREE_TRIES} free tries. It is USD 19 once on GitHub Sponsors (the "$19 one time" tier) and unlocks Pro in every Zovo extension. Already bought it? Choose Unlock with GitHub Sponsors (one question to GitHub, nothing else is sent). Queries, editing, export and unlimited connections stay free.`);
