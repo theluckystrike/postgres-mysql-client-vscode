@@ -2,6 +2,8 @@
 
 A free PostgreSQL client and MySQL client, with unlimited connections, free row edits and streamed CSV export. Also MariaDB and SQLite. Press Ctrl+Enter (Cmd+Enter on macOS) to run SQL. No sign-in and no subscription.
 
+Optional Zovo Pro (USD 15 once, every Zovo extension) adds an ER diagram, schema compare, CSV import and a query library. Everything that is free today stays free.
+
 ![A PostgreSQL query on the Pagila sample database in VS Code: the SQL file on the left, 1,000 result rows in the grid on the right, and the Database Explorer with tables, columns and row counts](images/screenshot-dark.png)
 
 Network: the extension connects only to the database servers you add. It sends no telemetry, makes no update check and calls no license server. It never runs a keep-alive or polling query, so your database sees nothing while you are idle. Passwords go to VS Code's secret storage, never to settings or logs.
@@ -54,6 +56,8 @@ You can try each Pro tool 3 times for free. After that, one quiet message explai
 - Query library: named queries saved on this computer that open on any connection.
 
 Zovo Pro is USD 15 once on [GitHub Sponsors](https://github.com/sponsors/theluckystrike?frequency=one-time). If you have already sponsored USD 10 or more, run "Zovo: Unlock Pro with GitHub Sponsors". That sends one question to GitHub and nothing else. A license key is checked on your computer.
+
+To hide the Pro tools from menus and the command palette, set `zovoSql.showProFeatures` to `false`.
 
 ## Getting started
 

@@ -294,12 +294,12 @@
         },
         {
           "command": "zovoSql.openSavedQuery",
-          "when": "view == zovoSql.connections",
+          "when": "view == zovoSql.connections && config.zovoSql.showProFeatures",
           "group": "2_more@2"
         },
         {
           "command": "zovoSql.compareSchemas",
-          "when": "view == zovoSql.connections",
+          "when": "view == zovoSql.connections && config.zovoSql.showProFeatures",
           "group": "2_more@3"
         },
         {
@@ -331,12 +331,12 @@
         },
         {
           "command": "zovoSql.erDiagram",
-          "when": "view == zovoSql.connections && viewItem =~ /^(connection|database|schema)/",
+          "when": "view == zovoSql.connections && viewItem =~ /^(connection|database|schema)/ && config.zovoSql.showProFeatures",
           "group": "2_tools@1"
         },
         {
           "command": "zovoSql.compareSchemas",
-          "when": "view == zovoSql.connections && viewItem =~ /^(connection|database|schema)/",
+          "when": "view == zovoSql.connections && viewItem =~ /^(connection|database|schema)/ && config.zovoSql.showProFeatures",
           "group": "2_tools@2"
         },
         {
@@ -381,7 +381,7 @@
         },
         {
           "command": "zovoSql.importCsv",
-          "when": "view == zovoSql.connections && viewItem == table",
+          "when": "view == zovoSql.connections && viewItem == table && config.zovoSql.showProFeatures",
           "group": "2_tools@1"
         },
         {
@@ -420,7 +420,7 @@
         },
         {
           "command": "zovoSql.saveQuery",
-          "when": "editorLangId == sql",
+          "when": "editorLangId == sql && config.zovoSql.showProFeatures",
           "group": "zovoSql@4"
         }
       ],
@@ -452,6 +452,34 @@
         {
           "command": "zovoSql.cancel",
           "when": "zovoSql.running"
+        },
+        {
+          "command": "zovoSql.erDiagram",
+          "when": "config.zovoSql.showProFeatures"
+        },
+        {
+          "command": "zovoSql.compareSchemas",
+          "when": "config.zovoSql.showProFeatures"
+        },
+        {
+          "command": "zovoSql.saveQuery",
+          "when": "config.zovoSql.showProFeatures"
+        },
+        {
+          "command": "zovoSql.openSavedQuery",
+          "when": "config.zovoSql.showProFeatures"
+        },
+        {
+          "command": "zovoSql.getPro",
+          "when": "config.zovoSql.showProFeatures"
+        },
+        {
+          "command": "zovoSql.enterLicenseKey",
+          "when": "config.zovoSql.showProFeatures"
+        },
+        {
+          "command": "zovoSql.unlockWithSponsors",
+          "when": "config.zovoSql.showProFeatures"
         }
       ]
     },
@@ -510,6 +538,11 @@
           "type": "boolean",
           "default": true,
           "description": "Show the small Sponsor, PayPal and More free tools links in the results status line. Nothing is sent anywhere."
+        },
+        "zovoSql.showProFeatures": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the Zovo Pro tools (ER diagram, schema compare, CSV import, query library) and the Zovo Pro commands in menus and the command palette. Set it to false to hide them. Everything free keeps working."
         }
       }
     },
