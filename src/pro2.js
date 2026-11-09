@@ -206,7 +206,9 @@ const fmtN = (n) => (n === null || n === undefined ? '' : Math.round(n).toLocale
 
 /** A static page (no script): summary, hints, then the plan tree with a bar per step. */
 function planHtml({ plan, sql, title, dialect, cspSource, analyzed, rawText }) {
-  const csp = `default-src 'none'; style-src 'unsafe-inline' ${cspSource || ''}`;
+  // Inline styles only: the page loads no file, so VS Code's resource origin (cspSource) is not needed either.
+  void cspSource;
+  const csp = "default-src 'none'; style-src 'unsafe-inline'";
   const head = [];
   if (plan.executionMs !== null && plan.executionMs !== undefined) head.push(`Execution ${fmtMs(plan.executionMs)}`);
   else if (plan.wholeMs) head.push(`Run time ${fmtMs(plan.wholeMs)}`);

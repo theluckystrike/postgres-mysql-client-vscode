@@ -110,7 +110,7 @@ test('plan page: static (no script), escaped, CSP without network, hints and the
   const plan = P.parsePlan('postgres', true, [[JSON.stringify(PG_ANALYZE)]]);
   const html = P.planHtml({ plan, sql: "select * from orders where status = 'open' <script>", title: 'Explain Analyze · local <pg>', dialect: 'PostgreSQL', cspSource: 'vscode-webview://x', analyzed: true, rawText: '[{"Plan":1}]' });
   assert.doesNotMatch(html, /<script/i);
-  assert.match(html, /content="default-src 'none'; style-src 'unsafe-inline' vscode-webview:\/\/x"/);
+  assert.match(html, /content="default-src 'none'; style-src 'unsafe-inline'"/);
   assert.match(html, /&lt;script&gt;/);
   assert.match(html, /local &lt;pg&gt;/);
   assert.match(html, /slowest step/);
