@@ -1,0 +1,583 @@
+{
+  "name": "zovo-sql-client",
+  "displayName": "Postgres & MySQL Query Client - SQL Database Tool (SQLite, CSV Export)",
+  "description": "Free PostgreSQL client and MySQL client for VS Code: unlimited connections, edit rows, streamed CSV export. Run SQL with Ctrl+Enter, browse tables, cancel long queries. Also MariaDB and SQLite. No sign-in, no telemetry, no keep-alive queries.",
+  "version": "0.1.0",
+  "publisher": "zovo",
+  "license": "MIT",
+  "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#10233A",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.90.0",
+    "node": ">=18"
+  },
+  "categories": [
+    "Data Science",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "postgres client",
+    "mysql client",
+    "sql client",
+    "database client",
+    "postgresql",
+    "mysql",
+    "mariadb",
+    "sqlite",
+    "sql",
+    "database",
+    "query",
+    "db client",
+    "postgres",
+    "pg",
+    "sql editor",
+    "database explorer",
+    "csv export",
+    "edit rows",
+    "read only",
+    "free"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:sql"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Connections are stored per user, not per workspace. Nothing runs from the workspace."
+    },
+    "virtualWorkspaces": true
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "zovoSql",
+          "title": "SQL Client",
+          "icon": "media/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "zovoSql": [
+        {
+          "id": "zovoSql.connections",
+          "name": "Database Explorer",
+          "icon": "media/activity.svg",
+          "contextualTitle": "SQL Client"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "zovoSql.connections",
+        "contents": "No connections yet. Add PostgreSQL, MySQL, MariaDB or a SQLite file. Free, unlimited, no sign-in.\n[Add Connection](command:zovoSql.addConnection)\nThe extension connects only to the servers you add here. [Get started](command:zovoSql.openWalkthrough)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "zovoSql.addConnection",
+        "title": "Add Connection",
+        "category": "SQL Client",
+        "icon": "$(add)"
+      },
+      {
+        "command": "zovoSql.editConnection",
+        "title": "Edit Connection",
+        "category": "SQL Client",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "zovoSql.deleteConnection",
+        "title": "Delete Connection",
+        "category": "SQL Client",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "zovoSql.disconnect",
+        "title": "Disconnect",
+        "category": "SQL Client",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "zovoSql.refresh",
+        "title": "Refresh",
+        "category": "SQL Client",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "zovoSql.newQuery",
+        "title": "New Query",
+        "category": "SQL Client",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "zovoSql.runStatement",
+        "title": "Run Statement at Cursor (or Selection)",
+        "category": "SQL Client",
+        "icon": "$(play)"
+      },
+      {
+        "command": "zovoSql.runAll",
+        "title": "Run All Statements in File",
+        "category": "SQL Client",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "zovoSql.cancel",
+        "title": "Cancel Running Query",
+        "category": "SQL Client",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "zovoSql.selectConnection",
+        "title": "Choose Connection for This File",
+        "category": "SQL Client",
+        "icon": "$(database)"
+      },
+      {
+        "command": "zovoSql.openTable",
+        "title": "Open Table",
+        "category": "SQL Client",
+        "icon": "$(table)"
+      },
+      {
+        "command": "zovoSql.exportTable",
+        "title": "Export Table (CSV, JSON, SQL)…",
+        "category": "SQL Client",
+        "icon": "$(export)"
+      },
+      {
+        "command": "zovoSql.copyName",
+        "title": "Copy Name",
+        "category": "SQL Client"
+      },
+      {
+        "command": "zovoSql.selectTop",
+        "title": "New Query: SELECT * FROM This Table",
+        "category": "SQL Client",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "zovoSql.queryHistory",
+        "title": "Query History",
+        "category": "SQL Client",
+        "icon": "$(history)"
+      },
+      {
+        "command": "zovoSql.clearHistory",
+        "title": "Clear Query History",
+        "category": "SQL Client"
+      },
+      {
+        "command": "zovoSql.toggleReadOnly",
+        "title": "Toggle Read-Only for This Connection",
+        "category": "SQL Client",
+        "icon": "$(lock)"
+      },
+      {
+        "command": "zovoSql.showError",
+        "title": "Show Error",
+        "category": "SQL Client"
+      },
+      {
+        "command": "zovoSql.openWalkthrough",
+        "title": "Get Started",
+        "category": "SQL Client"
+      },
+      {
+        "command": "zovoSql.supportDeveloper",
+        "title": "Support the developer",
+        "category": "SQL Client"
+      },
+      {
+        "command": "zovoSql.moreViewers",
+        "title": "More free tools by Zovo",
+        "category": "SQL Client"
+      },
+      {
+        "command": "zovoSql.erDiagram",
+        "title": "ER Diagram (Pro)",
+        "category": "SQL Client",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "zovoSql.compareSchemas",
+        "title": "Compare Two Schemas (Pro)",
+        "category": "SQL Client",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "zovoSql.importCsv",
+        "title": "Import CSV into Table (Pro)",
+        "category": "SQL Client",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "zovoSql.saveQuery",
+        "title": "Save Query to Library (Pro)",
+        "category": "SQL Client",
+        "icon": "$(bookmark)"
+      },
+      {
+        "command": "zovoSql.openSavedQuery",
+        "title": "Open Saved Query (Pro)",
+        "category": "SQL Client",
+        "icon": "$(library)"
+      },
+      {
+        "command": "zovoSql.enterLicenseKey",
+        "title": "Zovo: Enter license key",
+        "category": "SQL Client"
+      },
+      {
+        "command": "zovoSql.getPro",
+        "title": "Zovo: Get Pro (USD 15 once, all Zovo extensions)",
+        "category": "SQL Client"
+      },
+      {
+        "command": "zovoSql.unlockWithSponsors",
+        "title": "Zovo: Unlock Pro with GitHub Sponsors",
+        "category": "SQL Client"
+      },
+      {
+        "command": "zovoSql.removeLicense",
+        "title": "Zovo: Remove license from this editor",
+        "category": "SQL Client"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "zovoSql.runStatement",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "editorTextFocus && editorLangId == sql"
+      },
+      {
+        "command": "zovoSql.runAll",
+        "key": "ctrl+alt+enter",
+        "mac": "cmd+alt+enter",
+        "when": "editorTextFocus && editorLangId == sql"
+      },
+      {
+        "command": "zovoSql.cancel",
+        "key": "ctrl+alt+c",
+        "mac": "cmd+alt+c",
+        "when": "zovoSql.running"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "zovoSql.addConnection",
+          "when": "view == zovoSql.connections",
+          "group": "navigation@1"
+        },
+        {
+          "command": "zovoSql.newQuery",
+          "when": "view == zovoSql.connections",
+          "group": "navigation@2"
+        },
+        {
+          "command": "zovoSql.refresh",
+          "when": "view == zovoSql.connections",
+          "group": "navigation@3"
+        },
+        {
+          "command": "zovoSql.queryHistory",
+          "when": "view == zovoSql.connections",
+          "group": "2_more@1"
+        },
+        {
+          "command": "zovoSql.openSavedQuery",
+          "when": "view == zovoSql.connections",
+          "group": "2_more@2"
+        },
+        {
+          "command": "zovoSql.compareSchemas",
+          "when": "view == zovoSql.connections",
+          "group": "2_more@3"
+        },
+        {
+          "command": "zovoSql.moreViewers",
+          "when": "view == zovoSql.connections",
+          "group": "3_zovo@1"
+        },
+        {
+          "command": "zovoSql.supportDeveloper",
+          "when": "view == zovoSql.connections",
+          "group": "3_zovo@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "zovoSql.newQuery",
+          "when": "view == zovoSql.connections && viewItem =~ /^(connection|database|schema)/",
+          "group": "inline@1"
+        },
+        {
+          "command": "zovoSql.newQuery",
+          "when": "view == zovoSql.connections && viewItem =~ /^(connection|database|schema)/",
+          "group": "1_query@1"
+        },
+        {
+          "command": "zovoSql.refresh",
+          "when": "view == zovoSql.connections && viewItem =~ /^(connection|database|schema|folder|table|view)/",
+          "group": "1_query@2"
+        },
+        {
+          "command": "zovoSql.erDiagram",
+          "when": "view == zovoSql.connections && viewItem =~ /^(connection|database|schema)/",
+          "group": "2_tools@1"
+        },
+        {
+          "command": "zovoSql.compareSchemas",
+          "when": "view == zovoSql.connections && viewItem =~ /^(connection|database|schema)/",
+          "group": "2_tools@2"
+        },
+        {
+          "command": "zovoSql.editConnection",
+          "when": "view == zovoSql.connections && viewItem =~ /^connection/",
+          "group": "3_conn@1"
+        },
+        {
+          "command": "zovoSql.toggleReadOnly",
+          "when": "view == zovoSql.connections && viewItem =~ /^connection/",
+          "group": "3_conn@2"
+        },
+        {
+          "command": "zovoSql.disconnect",
+          "when": "view == zovoSql.connections && viewItem =~ /^connection/",
+          "group": "3_conn@3"
+        },
+        {
+          "command": "zovoSql.deleteConnection",
+          "when": "view == zovoSql.connections && viewItem =~ /^connection/",
+          "group": "3_conn@4"
+        },
+        {
+          "command": "zovoSql.openTable",
+          "when": "view == zovoSql.connections && viewItem =~ /^(table|view)/",
+          "group": "inline@1"
+        },
+        {
+          "command": "zovoSql.openTable",
+          "when": "view == zovoSql.connections && viewItem =~ /^(table|view)/",
+          "group": "1_query@1"
+        },
+        {
+          "command": "zovoSql.selectTop",
+          "when": "view == zovoSql.connections && viewItem =~ /^(table|view)/",
+          "group": "1_query@2"
+        },
+        {
+          "command": "zovoSql.exportTable",
+          "when": "view == zovoSql.connections && viewItem =~ /^(table|view)/",
+          "group": "1_query@3"
+        },
+        {
+          "command": "zovoSql.importCsv",
+          "when": "view == zovoSql.connections && viewItem == table",
+          "group": "2_tools@1"
+        },
+        {
+          "command": "zovoSql.copyName",
+          "when": "view == zovoSql.connections && viewItem =~ /^(table|view|column|index|database|schema)/",
+          "group": "9_copy@1"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "zovoSql.runStatement",
+          "when": "editorLangId == sql",
+          "group": "navigation@1"
+        },
+        {
+          "command": "zovoSql.selectConnection",
+          "when": "editorLangId == sql",
+          "group": "navigation@2"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "zovoSql.runStatement",
+          "when": "editorLangId == sql",
+          "group": "zovoSql@1"
+        },
+        {
+          "command": "zovoSql.runAll",
+          "when": "editorLangId == sql",
+          "group": "zovoSql@2"
+        },
+        {
+          "command": "zovoSql.selectConnection",
+          "when": "editorLangId == sql",
+          "group": "zovoSql@3"
+        },
+        {
+          "command": "zovoSql.saveQuery",
+          "when": "editorLangId == sql",
+          "group": "zovoSql@4"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "zovoSql.showError",
+          "when": "false"
+        },
+        {
+          "command": "zovoSql.openTable",
+          "when": "false"
+        },
+        {
+          "command": "zovoSql.copyName",
+          "when": "false"
+        },
+        {
+          "command": "zovoSql.selectTop",
+          "when": "false"
+        },
+        {
+          "command": "zovoSql.importCsv",
+          "when": "false"
+        },
+        {
+          "command": "zovoSql.exportTable",
+          "when": "false"
+        },
+        {
+          "command": "zovoSql.cancel",
+          "when": "zovoSql.running"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "SQL Client",
+      "properties": {
+        "zovoSql.rowLimit": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 1,
+          "maximum": 100000,
+          "description": "Rows read per query and per Load more. The rest stay on the server until you scroll or click Load more."
+        },
+        "zovoSql.maxLoadedRows": {
+          "type": "number",
+          "default": 100000,
+          "minimum": 1000,
+          "description": "At most this many rows stay loaded in one result. Export the result to get every row: exports stream to the file and have no limit."
+        },
+        "zovoSql.history": {
+          "type": "boolean",
+          "default": true,
+          "description": "Keep the last queries per connection on this computer (VS Code global storage). Nothing is sent anywhere."
+        },
+        "zovoSql.historySize": {
+          "type": "number",
+          "default": 200,
+          "minimum": 10,
+          "maximum": 5000,
+          "description": "Queries kept in the history of each connection."
+        },
+        "zovoSql.confirmUnboundedWrites": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ask before an UPDATE or DELETE without WHERE, or a TRUNCATE, runs."
+        },
+        "zovoSql.connectTimeoutSeconds": {
+          "type": "number",
+          "default": 10,
+          "minimum": 2,
+          "maximum": 120,
+          "description": "Give up connecting after this many seconds, with a clear message instead of a hang."
+        },
+        "zovoSql.sqliteMaxFileSizeMB": {
+          "type": "number",
+          "default": 512,
+          "minimum": 1,
+          "description": "SQLite files are read into memory. Larger files show a message instead."
+        },
+        "zovoSql.askForRating": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ask for a Marketplace rating after 2 good sessions at least 4 hours apart. \"Later\" asks once more after 7 days, \"No thanks\" never asks again. Never after an error. Nothing is sent anywhere."
+        },
+        "zovoSql.showSupportLinks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the small Sponsor, PayPal and More free tools links in the results status line. Nothing is sent anywhere."
+        }
+      }
+    },
+    "walkthroughs": [
+      {
+        "id": "zovoSql.start",
+        "title": "Get started with the SQL Client",
+        "description": "Connect to PostgreSQL, MySQL, MariaDB or SQLite, run queries and edit rows. Free, unlimited connections.",
+        "steps": [
+          {
+            "id": "connect",
+            "title": "Add a connection",
+            "description": "Paste a URL such as postgres://user@host:5432/db, or fill in host, port, user and SSL mode. The password goes to VS Code's secret storage.\n[Add Connection](command:zovoSql.addConnection)",
+            "media": {
+              "markdown": "walkthrough/connect.md"
+            },
+            "completionEvents": [
+              "onCommand:zovoSql.addConnection"
+            ]
+          },
+          {
+            "id": "query",
+            "title": "Run a query",
+            "description": "Click New Query on a connection. Ctrl+Enter (Cmd+Enter on macOS) runs the statement at the cursor; Ctrl+Alt+Enter runs the whole file. Cancel stops a long query on the server.\n[New Query](command:zovoSql.newQuery)",
+            "media": {
+              "image": "images/screenshot-dark.png",
+              "altText": "A PostgreSQL query in the editor with its results in the grid next to it, and the Database Explorer on the left."
+            },
+            "completionEvents": [
+              "onCommand:zovoSql.newQuery",
+              "onCommand:zovoSql.runStatement"
+            ]
+          },
+          {
+            "id": "edit",
+            "title": "Edit rows and export",
+            "description": "Double-click a cell of a table with a primary key to edit it. Review shows the exact SQL before it runs in one transaction. Export streams every row to CSV, JSON or SQL INSERT.",
+            "media": {
+              "markdown": "walkthrough/edit.md"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node scripts/build.js --production",
+    "test": "node scripts/build.js --production && ZOVO_SPONSORS_MODULE=$PWD/src/license/sponsors.js node --test \"test/*.test.js\"",
+    "package": "npm run build && npx -y @vscode/vsce package --no-dependencies -o dist/",
+    "test:it": "ZOVO_SQL_IT=1 node --test --test-concurrency=1 test/integration.test.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "~1.90.0",
+    "esbuild": "0.28.2",
+    "mysql2": "^3.11.0",
+    "pg": "^8.13.0",
+    "pg-cursor": "^2.12.0",
+    "sql.js": "1.15.2"
+  },
+  "homepage": "https://github.com/theluckystrike/postgres-mysql-client-vscode#readme",
+  "bugs": {
+    "url": "https://github.com/theluckystrike/postgres-mysql-client-vscode/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/theluckystrike/postgres-mysql-client-vscode"
+  },
+  "sponsor": {
+    "url": "https://github.com/sponsors/theluckystrike"
+  }
+}
