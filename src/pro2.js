@@ -395,13 +395,15 @@ function tracked(reader) {
   return t;
 }
 
+const rowsWord = (n) => `${n.toLocaleString('en-US')} row${n === 1 ? '' : 's'}`;
+
 /** SQL that makes table B equal to table A (B's dialect): DELETE, then UPDATE, then INSERT, in one transaction. */
 function syncScript({ res, columns, keyCount, target, dialect, labelA, labelB, limit = 100000 }) {
   const tbl = qualified(target.schema, target.table, dialect);
   const where = (row) => columns.slice(0, keyCount).map((c, i) => (row[i] === null ? `${quoteIdent(c, dialect)} IS NULL` : `${quoteIdent(c, dialect)} = ${quoteLiteral(row[i], dialect)}`)).join(' AND ');
   const out = [
     `-- Make ${labelB} match ${labelA}.`,
-    `-- ${res.onlyA.toLocaleString('en-US')} rows only in ${labelA} (INSERT), ${res.onlyB.toLocaleString('en-US')} only in ${labelB} (DELETE), ${res.changed.toLocaleString('en-US')} changed (UPDATE), ${res.same.toLocaleString('en-US')} equal.`,
+    `-- ${rowsWord(res.onlyA)} only in ${labelA} (INSERT), ${res.onlyB.toLocaleString('en-US')} only in ${labelB} (DELETE), ${res.changed.toLocaleString('en-US')} changed (UPDATE), ${res.same.toLocaleString('en-US')} equal.`,
     '-- Review it before you run it. It runs on the connection this file is bound to, in one transaction.',
   ];
   if (res.capped) out.push(`-- Only the first ${res.diffs.length.toLocaleString('en-US')} differences are in this script.`);

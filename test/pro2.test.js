@@ -190,7 +190,7 @@ test('compareRows: equal, changed, only in A, only in B; values canonical across
   assert.ok(lines.indexOf('DELETE FROM `shop`.`people` WHERE `id` = 3;') < lines.indexOf("UPDATE `shop`.`people` SET `name` = 'bob' WHERE `id` = 2;"));
   assert.ok(lines.includes("UPDATE `shop`.`people` SET `active` = 't' WHERE `id` = 5;"));
   assert.ok(lines.includes("INSERT INTO `shop`.`people` (`id`, `name`, `amount`, `active`) VALUES (4, 'dan', '4.00', 't');"));
-  assert.ok(lines.some((l) => /1 rows only in pg · people \(INSERT\), 1 only in maria · people \(DELETE\), 2 changed \(UPDATE\), 1 equal/.test(l)));
+  assert.ok(lines.some((l) => /1 row only in pg · people \(INSERT\), 1 only in maria · people \(DELETE\), 2 changed \(UPDATE\), 1 equal/.test(l)));
   const pgSql = P.syncScript({ res, columns, keyCount: 1, target: { schema: 'public', table: 'people' }, dialect: 'postgres', labelA: 'a', labelB: 'b' });
   assert.match(pgSql, /^BEGIN;$/m);
   assert.match(pgSql, /INSERT INTO "public"\."people" \("id", "name", "amount", "active"\) VALUES \(4, 'dan', '4\.00', 't'\);/);
