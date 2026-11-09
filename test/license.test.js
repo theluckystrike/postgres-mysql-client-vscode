@@ -208,7 +208,7 @@ test('facade unlock() with no rail id: quick pick of rails plus Get Pro', async 
 test('Get Pro: Sponsors page by default; Stripe link gets a stable random install id; "" = not on sale', async () => {
   const a = fakeVscode();
   await mk(a).getPro();
-  assert.deepEqual(a.log.opened, ['https://github.com/sponsors/theluckystrike?frequency=one-time']);
+  assert.deepEqual(a.log.opened, ['https://github.com/sponsors/theluckystrike/sponsorships?tier_id=679878']);
   assert.equal(a.global.size, 0); // no install id for the Sponsors page
   const b = fakeVscode();
   const pb = mk(b, { paymentUrl: lic.BUY_URL + 'hex-pro' });

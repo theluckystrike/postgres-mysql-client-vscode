@@ -2,7 +2,7 @@
 
 A free PostgreSQL client and MySQL client, with unlimited connections, free row edits and streamed CSV export. Also MariaDB and SQLite. Press Ctrl+Enter (Cmd+Enter on macOS) to run SQL. No sign-in and no subscription.
 
-Optional Zovo Pro (USD 15 once, every Zovo extension) adds an ER diagram, schema compare, CSV import and a query library. Everything that is free today stays free.
+Optional Zovo Pro (USD 19 once, every Zovo extension) adds an ER diagram, schema compare, CSV import and a query library. Everything that is free today stays free.
 
 ![A PostgreSQL query on the Pagila sample database in VS Code: the SQL file on the left, 1,000 result rows in the grid on the right, and the Database Explorer with tables, columns and row counts](images/screenshot-dark.png)
 
@@ -17,7 +17,7 @@ Measured against the complaints in reviews of other database extensions on the M
 | "It allows only 2 connections before forcing you to pay annual subscription" ([review, 2025-01-08](https://marketplace.visualstudio.com/items?itemName=cweijan.vscode-postgresql-client2&ssr=false#review-details)) | Unlimited connections, free. The gate test used 7 connections on one machine. |
 | "now you can not even edit a table without paying" ([review, 2025-12-26](https://marketplace.visualstudio.com/items?itemName=DBCode.dbcode&ssr=false#review-details)) | Editing rows is free: edit a cell, add or delete a row. You see the exact SQL first, and it runs in one transaction. |
 | "this will automatically run 'SELECT 1' statements to ensure that it remains connected" ([review, 2026-02-05](https://marketplace.visualstudio.com/items?itemName=DBCode.dbcode&ssr=false#review-details)) | No keep-alive and no polling. In the gate test, the PostgreSQL and MariaDB statement logs showed 0 statements in 60 idle seconds while the extension had connections open. |
-| "a subscription makes it an immediate no-go. Maybe worth it if it was a one time purchase" ([review, 2025-11-07](https://marketplace.visualstudio.com/items?itemName=cweijan.vscode-postgresql-client2&ssr=false#review-details)) | No subscription. Everything above is free. Four extra tools are Zovo Pro: USD 15, paid once. |
+| "a subscription makes it an immediate no-go. Maybe worth it if it was a one time purchase" ([review, 2025-11-07](https://marketplace.visualstudio.com/items?itemName=cweijan.vscode-postgresql-client2&ssr=false#review-details)) | No subscription. Everything above is free. Four extra tools are Zovo Pro: USD 19, paid once. |
 
 ## Features (free)
 
@@ -46,7 +46,7 @@ Measured against the complaints in reviews of other database extensions on the M
 
 ![The same query in a light theme](images/screenshot-light.png)
 
-## Zovo Pro (USD 15, paid once, for every Zovo extension)
+## Zovo Pro (USD 19, paid once, for every Zovo extension)
 
 You can try each Pro tool 3 times for free. After that, one quiet message explains how to unlock it. There are no popups, ads or countdowns, and nothing above is ever locked.
 
@@ -55,7 +55,7 @@ You can try each Pro tool 3 times for free. After that, one quiet message explai
 - CSV import into a table: the file is read as a stream, header names are matched to columns, and rows are inserted in batches of 500.
 - Query library: named queries saved on this computer that open on any connection.
 
-Zovo Pro is USD 15 once on [GitHub Sponsors](https://github.com/sponsors/theluckystrike?frequency=one-time). If you have already sponsored USD 10 or more, run "Zovo: Unlock Pro with GitHub Sponsors". That sends one question to GitHub and nothing else. A license key is checked on your computer.
+Zovo Pro is USD 19 once on GitHub Sponsors (the ["$19 one time" tier](https://github.com/sponsors/theluckystrike/sponsorships?tier_id=679878)). If you bought that tier, or have a monthly sponsorship of USD 10 or more that is still running, run "Zovo: Unlock Pro with GitHub Sponsors". The "$15 one time" and "$5 a month" tiers on the same page are for Obsidian plugins and do not include Zovo Pro. No GitHub account? Send USD 19 to [paypal.com/paypalme/najzzz/19](https://www.paypal.com/paypalme/najzzz/19) with "Zovo Pro" in the note, and you get a license key by email within a day. That sends one question to GitHub and nothing else. A license key is checked on your computer.
 
 To hide the Pro tools from menus and the command palette, set `zovoSql.showProFeatures` to `false`.
 

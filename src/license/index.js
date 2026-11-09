@@ -22,7 +22,9 @@
 const crypto = require('crypto');
 const { createKeyRail, INSTALL_ID_KEY } = require('./license');
 
-const SPONSORS_ONE_TIME = 'https://github.com/sponsors/theluckystrike?frequency=one-time';
+// The Zovo Pro tier ("$19 one time", tier_id 679878) on GitHub Sponsors. Not the generic one-time page: that page also
+// lists the notemods.com Obsidian tiers, which do not include Zovo Pro.
+const SPONSORS_ONE_TIME = 'https://github.com/sponsors/theluckystrike/sponsorships?tier_id=679878';
 const LABELS = {
   'github-sponsors': 'Unlock with GitHub Sponsors',
   'license-key': 'I have a license key',
@@ -109,7 +111,7 @@ function createLicense(o) {
       if (r.pro) await vscode.window.showInformationMessage(r.message);
       else if (r.reason === 'expired' && r.renewUrl) {
         if ((await vscode.window.showWarningMessage(r.message, 'Renew page')) === 'Renew page') await open(r.renewUrl);
-      } else if (r.reason === 'not-sponsor' || r.reason === 'below-minimum') {
+      } else if (r.reason === 'not-sponsor' || r.reason === 'other-tier' || r.reason === 'below-minimum') {
         if ((await vscode.window.showWarningMessage(r.message, 'Open GitHub Sponsors')) === 'Open GitHub Sponsors') await open(SPONSORS_ONE_TIME);
       } else if (r.reason !== 'cancelled') await vscode.window.showWarningMessage(r.message);
     }

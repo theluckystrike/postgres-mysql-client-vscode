@@ -33,7 +33,7 @@ function createPro(vscode, context) {
       await context.globalState.update(TRIES_KEY, tries);
       return true;
     }
-    return license.requirePro(feature, `${detail} You used your ${FREE_TRIES} free tries. It is USD 15 once on GitHub Sponsors and unlocks Pro in every Zovo extension. Already sponsored USD 10 or more? Choose Unlock with GitHub Sponsors (one question to GitHub, nothing else is sent). Queries, editing, export and unlimited connections stay free.`);
+    return license.requirePro(feature, `${detail} You used your ${FREE_TRIES} free tries. It is USD 19 once on GitHub Sponsors (the "$19 one time" tier) and unlocks Pro in every Zovo extension. Already bought it? Choose Unlock with GitHub Sponsors (one question to GitHub, nothing else is sent). Queries, editing, export and unlimited connections stay free.`);
   }
 
   return { license, allow, enabled: PRO_ENABLED };
