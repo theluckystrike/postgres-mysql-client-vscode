@@ -104,3 +104,9 @@ See [all Zovo extensions on the Marketplace](https://marketplace.visualstudio.co
 ## License
 
 MIT. Drivers: [pg](https://github.com/brianc/node-postgres) (MIT), [mysql2](https://github.com/sidorares/node-mysql2) (MIT), [sql.js](https://github.com/sql-js/sql.js) (MIT). See THIRD-PARTY-NOTICES.md.
+
+## More from zovo
+
+- [All free zovo VS Code extensions](https://marketplace.visualstudio.com/publishers/zovo) — file viewers, database clients, formatters. Offline, no telemetry, no sign-up.
+- [Full MCP server catalogue](https://theluckystrike.github.io/mcp/) — local-first MCP servers for back-office work: invoices, VAT, PDFs, spreadsheets, payroll.
+- [Hosted no-install MCP endpoints](https://mcp.zovo.one) — paste a URL in Claude / Cursor, nothing to install.
